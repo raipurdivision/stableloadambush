@@ -10,6 +10,7 @@
 
 
 
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -23,9 +24,17 @@
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; min-height: 100vh; color: #000; }
-        .page-nav { max-width: 1000px; margin: 0 auto 10px auto; display: flex; gap: 6px; }
+        .page-nav { max-width: 1000px; margin: 0 auto 10px auto; display: flex; gap: 6px; align-items: center; }
         .page-nav-btn { padding: 10px 28px; border: none; border-radius: 8px 8px 0 0; font-size: 14px; font-weight: 700; cursor: pointer; transition: background 0.25s, color 0.25s; background: rgba(255,255,255,0.25); color: #fff; }
         .page-nav-btn.active { background: #fff; color: #003366; }
+        .voice-toggle-container { margin-left: auto; padding: 8px 16px; background: rgba(255,255,255,0.95); border-radius: 25px; box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
+        .voice-toggle-label { display: flex; align-items: center; gap: 10px; cursor: pointer; user-select: none; }
+        .voice-toggle-checkbox { display: none; }
+        .voice-toggle-slider { position: relative; width: 48px; height: 24px; background: #ccc; border-radius: 24px; transition: background 0.3s; }
+        .voice-toggle-slider::before { content: ''; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; background: white; border-radius: 50%; transition: transform 0.3s; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+        .voice-toggle-checkbox:checked + .voice-toggle-slider { background: #10b981; }
+        .voice-toggle-checkbox:checked + .voice-toggle-slider::before { transform: translateX(24px); }
+        .voice-toggle-text { font-size: 14px; font-weight: 600; color: #003366; white-space: nowrap; }
         .container { max-width: 1000px; margin: 0 auto; background: white; padding: 30px 40px; border-radius: 0 10px 10px 10px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); }
         .page { display: none; }
         .page.active { display: block; }
@@ -54,8 +63,8 @@
         .expandable-container { margin-top: 4px; }
         .lp-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px; margin-top: 4px; }
         .lp-grid .form-group { display: grid; grid-template-columns: 120px 1fr; align-items: center; gap: 6px; border: 1.5px solid #003366; border-radius: 5px; padding: 3px 6px; background: #eef3fa; }
-        .lp-grid .form-group label { margin-bottom: 0; text-align: right; }
-        .lp-grid input[type="text"], .lp-grid input[type="date"] { height: 28px; }
+        .lp-grid .form-group label { margin-bottom: 0; text-align: right; font-size: 12px; }
+        .lp-grid input[type="text"], .lp-grid input[type="date"] { height: 24px; width: 100%; padding: 2px 4px; font-size: 12px; }
         .signature-section { margin-top: 30px; display: flex; justify-content: flex-end; align-items: flex-start; gap: 20px; }
         .signature-box { text-align: center; }
         .signature-upload { display: inline-block; padding: 8px 18px; background: #003366; color: white; border-radius: 5px; cursor: pointer; font-size: 13px; transition: background 0.3s; }
@@ -139,6 +148,13 @@
     <div class="page-nav">
         <button class="page-nav-btn active" onclick="switchPage('reportPage', this)">📋 REPORT FORM</button>
         <button class="page-nav-btn"        onclick="switchPage('photoPage',  this)">📷 PHOTO ATTACHMENTS</button>
+        <div class="voice-toggle-container">
+            <label class="voice-toggle-label">
+                <input type="checkbox" id="voiceToggle" class="voice-toggle-checkbox" checked>
+                <span class="voice-toggle-slider"></span>
+                <span class="voice-toggle-text">🎤 Voice Commands</span>
+            </label>
+        </div>
     </div>
     <div class="container">
         <div class="page active" id="reportPage">
@@ -922,6 +938,7 @@
     let currentInput = null;
     let currentButton = null;
     let isListening = false;
+    let voiceEnabled = true; // Track if voice typing is enabled
 
     // Microphone SVG icon
     const micIcon = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2H3v2a9 9 0 0 0 8 8.94V23h2v-2.06A9 9 0 0 0 21 12v-2h-2z"/></svg>';
@@ -1067,6 +1084,37 @@
             micButton.style.top = '12px';
             micButton.style.transform = 'none';
         }
+
+        // Set initial visibility based on voice toggle
+        micButton.style.display = voiceEnabled ? 'flex' : 'none';
+    }
+
+    // Show all mic buttons
+    function showAllMicButtons() {
+        document.querySelectorAll('.voice-typing-mic-btn').forEach(function(btn) {
+            btn.style.display = 'flex';
+        });
+    }
+
+    // Hide all mic buttons
+    function hideAllMicButtons() {
+        // Stop listening if active
+        if (isListening) {
+            stopListening();
+        }
+        document.querySelectorAll('.voice-typing-mic-btn').forEach(function(btn) {
+            btn.style.display = 'none';
+        });
+    }
+
+    // Toggle voice typing on/off
+    function toggleVoiceTyping(enabled) {
+        voiceEnabled = enabled;
+        if (enabled) {
+            showAllMicButtons();
+        } else {
+            hideAllMicButtons();
+        }
     }
 
     // Add voice typing to all text inputs and textareas
@@ -1115,6 +1163,19 @@
             childList: true,
             subtree: true
         });
+
+        // Listen to voice toggle switch
+        const voiceToggle = document.getElementById('voiceToggle');
+        if (voiceToggle) {
+            // Set initial state
+            voiceEnabled = voiceToggle.checked;
+            toggleVoiceTyping(voiceEnabled);
+
+            // Listen for changes
+            voiceToggle.addEventListener('change', function() {
+                toggleVoiceTyping(this.checked);
+            });
+        }
     }
 
     // Start initialization
