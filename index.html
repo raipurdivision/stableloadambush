@@ -1,0 +1,1127 @@
+
+
+
+
+
+
+
+
+
+
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Loco Trouble Report Form</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; min-height: 100vh; color: #000; }
+        .page-nav { max-width: 1000px; margin: 0 auto 10px auto; display: flex; gap: 6px; }
+        .page-nav-btn { padding: 10px 28px; border: none; border-radius: 8px 8px 0 0; font-size: 14px; font-weight: 700; cursor: pointer; transition: background 0.25s, color 0.25s; background: rgba(255,255,255,0.25); color: #fff; }
+        .page-nav-btn.active { background: #fff; color: #003366; }
+        .container { max-width: 1000px; margin: 0 auto; background: white; padding: 30px 40px; border-radius: 0 10px 10px 10px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); }
+        .page { display: none; }
+        .page.active { display: block; }
+        .header { text-align: center; margin-bottom: 22px; padding-bottom: 16px; border-bottom: 3px solid #003366; }
+        .header h1 { color: #003366; font-size: 28px; font-weight: bold; }
+        .section { margin-bottom: 8px; padding: 0; background: #f8f9fa; border-radius: 8px; overflow: hidden; border: 2px solid #003366; }
+        .section.case-details { background: transparent; border-radius: 8px; margin-bottom: 8px; border: 2px solid #003366; }
+        .section-title { font-size: 14px; font-weight: bold; color: #003366; background: #808080; padding: 5px 10px; text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; justify-content: space-between; border-radius: 8px 8px 0 0; }
+        .section-body { padding: 6px 10px 8px 10px; }
+        .button-group { display: flex; gap: 8px; }
+        .add-line-btn { background: #003366; color: white; border: none; width: 26px; height: 26px; border-radius: 50%; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.3s; line-height: 1; }
+        .add-line-btn:hover { background: #0055aa; }
+        .line-remove-btn { background: #dc3545; color: white; border: none; width: 22px; height: 22px; border-radius: 50%; font-size: 15px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-left: 6px; margin-top: 3px; transition: background 0.3s; line-height: 1; }
+        .line-remove-btn:hover { background: #c82333; }
+        .form-group { margin-bottom: 4px; }
+        label { display: flex; font-weight: 500; color: #000; margin-bottom: 2px; font-size: 13px; }
+        input[type="text"], input[type="date"], textarea { width: 120%; padding: 2px 5px; border: 2px solid #e0e0e0; border-radius: 5px; font-size: 14px; transition: border-color 0.3s; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #FFFEF0; height: 30px; color: #000; }
+        input[type="text"]:focus, input[type="date"]:focus, textarea:focus { outline: none; border-color: #003366; }
+        .pdf-mode input[type="text"], .pdf-mode input[type="date"], .pdf-mode textarea { background-color: transparent !important; border: none !important; border-radius: 0 !important; }
+        textarea.auto-resize { resize: none; overflow: hidden; height: 24px; min-height: 24px; line-height: 1.4; padding: 3px 5px; display: block; word-break: break-all; overflow-wrap: break-word; white-space: pre-wrap; }
+        .textarea-mirror { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 13px; line-height: 1.4; padding: 3px 5px; width: 100%; min-height: 24px; word-break: break-all; overflow-wrap: break-word; white-space: pre-wrap; display: block; color: #000; }
+        .textarea-mirror.case-details-textarea, .case-details-textarea { font-weight: bold; }
+        .expandable-line { display: flex; align-items: flex-start; margin-bottom: 5px; }
+        .line-number { min-width: 26px; font-weight: bold; color: #000; padding-top: 3px; font-size: 13px; }
+        .line-input { flex: 1; }
+        .expandable-container { margin-top: 4px; }
+        .lp-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px; margin-top: 4px; }
+        .lp-grid .form-group { display: grid; grid-template-columns: 120px 1fr; align-items: center; gap: 6px; border: 1.5px solid #003366; border-radius: 5px; padding: 3px 6px; background: #eef3fa; }
+        .lp-grid .form-group label { margin-bottom: 0; text-align: right; }
+        .lp-grid input[type="text"], .lp-grid input[type="date"] { height: 28px; }
+        .signature-section { margin-top: 30px; display: flex; justify-content: flex-end; align-items: flex-start; gap: 20px; }
+        .signature-box { text-align: center; }
+        .signature-upload { display: inline-block; padding: 8px 18px; background: #003366; color: white; border-radius: 5px; cursor: pointer; font-size: 13px; transition: background 0.3s; }
+        .signature-upload:hover { background: #0055aa; }
+        .signature-upload input[type="file"] { display: none; }
+        .signature-preview { margin-top: 8px; max-width: 200px; max-height: 100px; border: 2px dashed #e0e0e0; padding: 8px; border-radius: 5px; }
+        .signature-preview img { max-width: 100%; max-height: 80px; }
+        .cli-name-input { margin-top: 8px; width: 300px; height: 50px; font-size: 17px; font-weight: 600; padding: 10px 14px; letter-spacing: 0.4px; }
+        .submit-btn { flex: 1; padding: 10px 15px; background: #003366; color: white; border: none; border-radius: 5px; font-size: 13px; font-weight: 600; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; }
+        .submit-btn:hover { transform: translateY(-2px); box-shadow: 0 5px 20px rgba(0,51,102,0.4); background: #0055aa; }
+        .action-buttons { display: flex; gap: 8px; margin-top: 24px; flex-wrap: wrap; }
+        .draft-buttons { display: flex; gap: 10px; margin-bottom: 15px; }
+        .draft-btn { flex: 1; padding: 10px 15px; border: none; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.3s; display: flex; align-items: center; justify-content: center; gap: 6px; }
+        .draft-btn.download { background: #10b981; color: white; }
+        .draft-btn.download:hover { background: #059669; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4); }
+        .draft-btn.upload { background: #3b82f6; color: white; }
+        .draft-btn.upload:hover { background: #2563eb; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4); }
+        .draft-btn.reset { background: #dc3545; color: white; }
+        .draft-btn.reset:hover { background: #c82333; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(220, 53, 69, 0.4); }
+        .draft-btn.print { background: #6c3483; color: white; }
+        .draft-btn.print:hover { background: #5b2c6f; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(108, 52, 131, 0.4); }
+        .draft-status { padding: 10px 15px; border-radius: 6px; margin-bottom: 15px; font-size: 13px; display: none; }
+        .draft-status.success { background: #d1fae5; color: #065f46; border: 1px solid #10b981; }
+        .draft-status.error { background: #fee2e2; color: #991b1b; border: 1px solid #ef4444; }
+        .draft-status.show { display: block; }
+        input[type="file"].hidden-file-input { display: none; }
+        .photo-page-header { text-align: center; margin-bottom: 20px; padding-bottom: 14px; border-bottom: 3px solid #003366; }
+        .photo-page-header h2 { color: #003366; font-size: 22px; }
+        .photo-tabs { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 0; }
+        .photo-tab-btn { padding: 5px 12px; border: 2px solid #003366; border-bottom: none; border-radius: 6px 6px 0 0; background: #e2e2e2; color: #003366; font-size: 11px; font-weight: 700; cursor: pointer; transition: background 0.2s, color 0.2s; }
+        .photo-tab-btn.active { background: #003366; color: #fff; }
+        .photo-tab-btn:hover:not(.active) { background: #c8c8c8; }
+        .photo-tab-content { border: 2px solid #003366; border-radius: 0 8px 8px 8px; padding: 16px; background: #f8f9fa; min-height: 260px; }
+        .photo-panel { display: none; }
+        .photo-panel.active { display: block; }
+        .photo-panel-title { font-size: 14px; font-weight: bold; color: #003366; background: #e2e2e2; padding: 5px 10px; border-radius: 5px; margin-bottom: 12px; letter-spacing: 0.4px; text-transform: uppercase; }
+        .photo-upload-zone { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+        .photo-upload-label { display: inline-flex; align-items: center; gap: 6px; padding: 8px 18px; background: #003366; color: white; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; transition: background 0.3s; white-space: nowrap; }
+        .photo-upload-label:hover { background: #0055aa; }
+        .photo-upload-label input[type="file"] { display: none; }
+        .photo-upload-hint { font-size: 12px; color: #777; }
+        .photo-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+        .photo-item { position: relative; border: 3px solid #FFD700; border-radius: 8px; overflow: hidden; background: #fff; box-shadow: 0 2px 8px rgba(255,215,0,0.3); display: flex; flex-direction: column; height: 100%; }
+        .photo-item img { width: 100%; height: 170px; object-fit: contain; display: block; background: #fff; padding: 5px; }
+        .photo-item-label { background: rgba(0,51,102,0.82); color: #fff; font-size: 11px; padding: 3px 8px; position: absolute; bottom: 0; left: 0; right: 0; text-align: center; }
+        .photo-description { width: 100%; padding: 8px; border: none; border-top: 1px solid #e0e0e0; font-size: 12px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; resize: vertical; min-height: 40px; background-color: #f8f9fa; color: #000; }
+        .photo-description:focus { outline: none; background-color: #fff; }
+        .photo-remove-btn { position: absolute; top: 5px; right: 5px; background: rgba(220,53,69,0.9); color: white; border: none; border-radius: 50%; width: 22px; height: 22px; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; line-height: 1; }
+        .photo-remove-btn:hover { background: #c82333; }
+        .photo-empty { grid-column: 1 / -1; text-align: center; color: #aaa; font-size: 13px; padding: 40px 0; }
+        .pdf-mode .section-title { background: transparent !important; color: #003366 !important; border-bottom: 1px solid #003366; }
+        .pdf-mode .no-pdf { display: none !important; }
+        @media print {
+            body { background: white !important; padding: 0 !important; margin: 0 !important; }
+            .page-nav { display: none !important; }
+            .container { box-shadow: none !important; padding: 15px !important; border-radius: 0 !important; max-width: 100% !important; }
+            .page { display: block !important; }
+            .submit-btn, .signature-upload, .add-line-btn, .line-remove-btn, .photo-upload-zone, .photo-remove-btn, #textFormatToolbar, .no-pdf { display: none !important; }
+            input[type="text"], input[type="date"] { border: none !important; background: transparent !important; height: auto !important; padding: 2px 5px !important; color: #000 !important; }
+            textarea { border: none !important; background: transparent !important; }
+            .textarea-mirror { color: #000 !important; font-size: 13px !important; padding: 2px 5px !important; }
+            .photo-panel { display: block !important; }
+            .photo-tab-btn { display: none !important; }
+            .photo-grid { display: grid !important; grid-template-columns: repeat(2, 1fr) !important; gap: 10px !important; }
+            .photo-item { page-break-inside: avoid !important; }
+            .photo-item img { object-fit: contain !important; max-width: 100% !important; height: auto !important; }
+            .section-title { background: #808080 !important; color: #003366 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .section { border: 2px solid #003366 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            #photoPage { page-break-before: always; }
+        }
+        .text-format-toolbar { position: absolute; background: #003366; border-radius: 6px; padding: 8px; display: none; box-shadow: 0 4px 12px rgba(0,0,0,0.3); z-index: 1000; gap: 6px; }
+        .text-format-toolbar.active { display: flex; }
+        .format-btn { background: white; border: none; border-radius: 4px; padding: 6px 10px; cursor: pointer; font-size: 13px; font-weight: 600; transition: all 0.2s; min-width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; }
+        .format-btn:hover { background: #e0e0e0; transform: scale(1.05); }
+        .format-btn.color-picker { padding: 2px; width: 40px; }
+        .format-btn input[type="color"] { border: none; width: 100%; height: 100%; cursor: pointer; border-radius: 3px; }
+        @media (max-width: 768px) { .lp-grid { grid-template-columns: 1fr; } .photo-grid { grid-template-columns: 1fr; } .container { padding: 20px; } }
+    </style>
+</head>
+<body>
+    <div class="page-nav">
+        <button class="page-nav-btn active" onclick="switchPage('reportPage', this)">📋 REPORT FORM</button>
+        <button class="page-nav-btn"        onclick="switchPage('photoPage',  this)">📷 PHOTO ATTACHMENTS</button>
+    </div>
+    <div class="container">
+        <div class="page active" id="reportPage">
+            <div class="header"><h1>LOCO TROUBLE REPORT</h1><p style="margin:4px 0 0;font-size:1.1em;font-weight:bold;letter-spacing:1px;color:#003366;">RAIPUR DIVISION</p></div>
+
+            <div id="draftStatus" class="draft-status"></div>
+
+            <form id="locoReportForm">
+                <div class="section case-details">
+                    <div class="section-title"><span>Case Details</span></div>
+                    <div class="section-body" style="padding-left:0;padding-right:0;">
+                        <textarea id="caseDetails" name="caseDetails" class="case-details-textarea auto-resize" placeholder="Enter case details here..."></textarea>
+                    </div>
+                </div>
+                <div class="section">
+                    <div class="section-title"><span>Brief History</span><div class="button-group"><button type="button" class="add-line-btn" onclick="addLine('briefHistory')">+</button></div></div>
+                    <div class="section-body"><div class="expandable-container" id="briefHistory"><div class="expandable-line" data-index="1"><span class="line-number">1.</span><textarea class="line-input auto-resize" name="briefHistory_1" placeholder="Enter history line 1"></textarea><button type="button" class="line-remove-btn" onclick="removeThisLine(this,'briefHistory')" title="Remove">−</button></div></div></div>
+                </div>
+                <div class="section">
+                    <div class="section-title"><span>LP &amp; Train Particulars</span></div>
+                    <div class="section-body"><div class="lp-grid">
+                        <div class="form-group"><label for="lpName">LP NAME/HQ</label><input type="text" id="lpName" name="lpName"></div>
+                        <div class="form-group"><label for="dop">Train No.</label><input type="text" id="trainno" name="trainno"></div>
+                        <div class="form-group"><label for="lpCmsId">LP CMS ID</label><input type="text" id="lpCmsId" name="lpCmsId"></div>
+                        <div class="form-group"><label for="trainNo">Loco No</label><input type="text" id="locono" name="locono"></div>
+                        <div class="form-group"><label for="bpcno">Grade</label><input type="text" id="grade" name="grade"></div>
+                        <div class="form-group"><label for="locono">Load</label><input type="text" id="load" name="load"></div>
+                        <div class="form-group"><label for="bpc%">DOP AS LP</label><input type="text" id="dopaslp" name="dopaslp"></div>
+                        <div class="form-group"><label for="grade">BPC Details</label><input type="text" id="bpcdetails" name="bpcdetails"></div>
+                        <div class="form-group"><label for="load">LP GCLI</label><input type="text" id="lpgcli" name="lpgcli"></div>
+                        <div class="form-group"><label for="GCLI">BPC DATE</label><input type="date" id="bpcdate" name="bpcdate"></div>
+                        <div class="form-group"><label for="alpCmsId">ALP Name/HQ</label><input type="text" id="alPnamehq" name="alpnamhq"></div>
+                        <div class="form-group"><label for="bpcDate">ALP CMS ID</label><input type="text" id="alpcmsid" name="alpcmsid"></div>
+                        <div class="form-group"><label for="lastCounselling">LP Last Counselling</label><input type="date" id="lastCounselling" name="lastCounselling"></div>
+                        <div class="form-group"><label for="schedule">Schedule</label><input type="text" id="schedule" name="schedule"></div>
+                    </div></div>
+                </div>
+                <div class="section">
+                    <div class="section-title"><span>Log Book Remarks</span><div class="button-group"><button type="button" class="add-line-btn" onclick="addLine('logBookRemarks')">+</button></div></div>
+                    <div class="section-body"><div class="expandable-container" id="logBookRemarks"><div class="expandable-line" data-index="1"><span class="line-number">1.</span><textarea class="line-input auto-resize" name="logBookRemarks_1" placeholder="Enter remark line 1"></textarea><button type="button" class="line-remove-btn" onclick="removeThisLine(this,'logBookRemarks')" title="Remove">−</button></div></div></div>
+                </div>
+                <div class="section">
+                    <div class="section-title"><span>DDS Message</span><div class="button-group"><button type="button" class="add-line-btn" onclick="addLine('ddsMessage')">+</button></div></div>
+                    <div class="section-body"><div class="expandable-container" id="ddsMessage"><div class="expandable-line" data-index="1"><span class="line-number">1.</span><textarea class="line-input auto-resize" name="ddsMessage_1" placeholder="Enter DDS message line 1"></textarea><button type="button" class="line-remove-btn" onclick="removeThisLine(this,'ddsMessage')" title="Remove">−</button></div></div></div>
+                </div>
+                <div class="section">
+                    <div class="section-title"><span>Chronology of Events</span><div class="button-group"><button type="button" class="add-line-btn" onclick="addLine('chronologyEvents')">+</button></div></div>
+                    <div class="section-body"><div class="expandable-container" id="chronologyEvents"><div class="expandable-line" data-index="1"><span class="line-number">1.</span><textarea class="line-input auto-resize" name="chronologyEvents_1" placeholder="Enter event line 1"></textarea><button type="button" class="line-remove-btn" onclick="removeThisLine(this,'chronologyEvents')" title="Remove">−</button></div></div></div>
+                </div>
+                <div class="section">
+                    <div class="section-title"><span>Observation</span><div class="button-group"><button type="button" class="add-line-btn" onclick="addLine('observation')">+</button></div></div>
+                    <div class="section-body"><div class="expandable-container" id="observation"><div class="expandable-line" data-index="1"><span class="line-number">1.</span><textarea class="line-input auto-resize" name="observation_1" placeholder="Enter observation line 1"></textarea><button type="button" class="line-remove-btn" onclick="removeThisLine(this,'observation')" title="Remove">−</button></div></div></div>
+                </div>
+                <div class="section">
+                    <div class="section-title"><span>Action Taken</span><div class="button-group"><button type="button" class="add-line-btn" onclick="addLine('actionTaken')">+</button></div></div>
+                    <div class="section-body"><div class="expandable-container" id="actionTaken"><div class="expandable-line" data-index="1"><span class="line-number">1.</span><textarea class="line-input auto-resize" name="actionTaken_1" placeholder="Enter action line 1"></textarea><button type="button" class="line-remove-btn" onclick="removeThisLine(this,'actionTaken')" title="Remove">−</button></div></div></div>
+                </div>
+                <div class="section">
+                    <div class="section-title"><span>Conclusion &amp; Responsibility</span><div class="button-group"><button type="button" class="add-line-btn" onclick="addLine('conclusion')">+</button></div></div>
+                    <div class="section-body"><div class="expandable-container" id="conclusion"><div class="expandable-line" data-index="1"><span class="line-number">1.</span><textarea class="line-input auto-resize" name="conclusion_1" placeholder="Enter conclusion line 1"></textarea><button type="button" class="line-remove-btn" onclick="removeThisLine(this,'conclusion')" title="Remove">−</button></div></div></div>
+                </div>
+                <div class="signature-section">
+                    <label style="font-weight:600;color:#003366;margin-bottom:0;">Report Prepared By:</label>
+                    <div class="signature-box">
+                        <label class="signature-upload">Upload Signature<input type="file" id="signatureFile" accept="image/*" onchange="previewSignature(event)"></label>
+                        <div class="signature-preview" id="signaturePreview" style="display:none;"><img id="signatureImage" src="" alt="Signature"></div>
+                        <div class="form-group"><input type="text" class="cli-name-input" id="cliName" name="cliName" placeholder="Enter CLI NAME"></div>
+                    </div>
+                </div>
+
+                <div class="action-buttons">
+                    <button type="submit" class="submit-btn">📄 GENERATE PDF</button>
+                    <button type="button" class="draft-btn download no-pdf" onclick="downloadDraft()">
+                        📥 Download Draft
+                    </button>
+                    <button type="button" class="draft-btn upload no-pdf" onclick="document.getElementById('draftFileInput').click()">
+                        📤 Upload Draft
+                    </button>
+                    <button type="button" class="draft-btn reset no-pdf" onclick="resetForm()">
+                        🔄 RESET ALL
+                    </button>
+                </div>
+                <input type="file" id="draftFileInput" class="hidden-file-input" accept=".json" onchange="uploadDraft(event)">
+
+                <button type="button" class="submit-btn" onclick="printReport()" style="margin-top:10px;background:#6c3483;width:100%;">🖨️ PRINT / PRINT PREVIEW</button>
+            </form>
+        </div>
+        <div class="page" id="photoPage">
+            <div class="photo-page-header"><h2>📷 PHOTO ATTACHMENTS</h2></div>
+            <div class="photo-tabs">
+                <button class="photo-tab-btn active" onclick="switchPhotoTab(1,this)">Photo Set 1</button>
+                <button class="photo-tab-btn"        onclick="switchPhotoTab(2,this)">Photo Set 2</button>
+                <button class="photo-tab-btn"        onclick="switchPhotoTab(3,this)">Photo Set 3</button>
+            </div>
+            <div class="photo-tab-content">
+                <div class="photo-panel active" id="photoPanel1">
+                    <div class="photo-panel-title">Photo Set 1</div>
+                    <div class="photo-upload-zone"><label class="photo-upload-label">＋ Add Photos<input type="file" accept="image/*" multiple onchange="addPhotos(1,this)"></label><span class="photo-upload-hint">Select one or more images — displayed 2 per row</span></div>
+                    <div class="photo-grid" id="photoGrid1"><div class="photo-empty" id="photoEmpty1">No photos attached yet. Click "Add Photos" above.</div></div>
+                </div>
+                <div class="photo-panel" id="photoPanel2">
+                    <div class="photo-panel-title">Photo Set 2</div>
+                    <div class="photo-upload-zone"><label class="photo-upload-label">＋ Add Photos<input type="file" accept="image/*" multiple onchange="addPhotos(2,this)"></label><span class="photo-upload-hint">Select one or more images — displayed 2 per row</span></div>
+                    <div class="photo-grid" id="photoGrid2"><div class="photo-empty" id="photoEmpty2">No photos attached yet. Click "Add Photos" above.</div></div>
+                </div>
+                <div class="photo-panel" id="photoPanel3">
+                    <div class="photo-panel-title">Photo Set 3</div>
+                    <div class="photo-upload-zone"><label class="photo-upload-label">＋ Add Photos<input type="file" accept="image/*" multiple onchange="addPhotos(3,this)"></label><span class="photo-upload-hint">Select one or more images — displayed 2 per row</span></div>
+                    <div class="photo-grid" id="photoGrid3"><div class="photo-empty" id="photoEmpty3">No photos attached yet. Click "Add Photos" above.</div></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="textFormatToolbar" class="text-format-toolbar">
+        <button class="format-btn" onclick="formatText('bold')" title="Bold"><strong>B</strong></button>
+        <button class="format-btn color-picker" title="Text Color"><input type="color" id="textColorPicker" onchange="formatTextColor(this.value)"></button>
+        <button class="format-btn color-picker" title="Background Color"><input type="color" id="bgColorPicker" onchange="formatBgColor(this.value)"></button>
+    </div>
+    <script>
+    function switchPage(pageId, btn) {
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('.page-nav-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById(pageId).classList.add('active');
+        btn.classList.add('active');
+    }
+    function switchPhotoTab(tabNum, btn) {
+        document.querySelectorAll('.photo-panel').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('.photo-tab-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById('photoPanel' + tabNum).classList.add('active');
+        btn.classList.add('active');
+    }
+    const photoStore  = { 1:[], 2:[], 3:[] };
+    let photoCounters = { 1:0,  2:0,  3:0  };
+    function addPhotos(tabNum, input) {
+        const files = Array.from(input.files);
+        if (!files.length) return;
+        const grid  = document.getElementById('photoGrid'  + tabNum);
+        const empty = document.getElementById('photoEmpty' + tabNum);
+        if (empty) empty.remove();
+        files.forEach(function(file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                photoCounters[tabNum]++;
+                const idx = photoCounters[tabNum], dataUrl = e.target.result;
+                photoStore[tabNum].push({ idx, dataUrl, name: file.name, description: '' });
+                const item = document.createElement('div');
+                item.className = 'photo-item';
+                item.id = 'photoItem_' + tabNum + '_' + idx;
+                item.innerHTML = '<img src="'+dataUrl+'" alt="'+file.name+'"><div class="photo-item-label">Photo '+idx+' — '+file.name+'</div><button class="photo-remove-btn" onclick="removePhoto('+tabNum+','+idx+',this)" title="Remove">✕</button><textarea class="photo-description" placeholder="Enter photo description..." oninput="updatePhotoDescription('+tabNum+','+idx+',this.value)"></textarea>';
+                grid.appendChild(item);
+            };
+            reader.readAsDataURL(file);
+        });
+        input.value = '';
+    }
+    function updatePhotoDescription(tabNum, idx, desc) { const p = photoStore[tabNum].find(p=>p.idx===idx); if(p) p.description=desc; }
+    function removePhoto(tabNum, idx, btn) {
+        const item = document.getElementById('photoItem_'+tabNum+'_'+idx);
+        if (item) item.remove();
+        photoStore[tabNum] = photoStore[tabNum].filter(p=>p.idx!==idx);
+        const grid = document.getElementById('photoGrid'+tabNum);
+        if (!grid.querySelectorAll('.photo-item').length) {
+            const e=document.createElement('div'); e.className='photo-empty'; e.id='photoEmpty'+tabNum; e.textContent='No photos attached yet. Click "Add Photos" above.'; grid.appendChild(e);
+        }
+    }
+    function getImageDimensions(dataUrl) {
+        return new Promise((resolve) => {
+            const img = new Image();
+            img.onload = function() {
+                resolve({ width: this.width, height: this.height });
+            };
+            img.src = dataUrl;
+        });
+    }
+
+    function calculateFitDimensions(imgW, imgH, boxW, boxH) {
+        const imgRatio = imgW / imgH;
+        const boxRatio = boxW / boxH;
+        let finalW, finalH;
+
+        if (imgRatio > boxRatio) {
+            // Image is wider - fit to width
+            finalW = boxW;
+            finalH = boxW / imgRatio;
+        } else {
+            // Image is taller - fit to height
+            finalH = boxH;
+            finalW = boxH * imgRatio;
+        }
+
+        return { width: finalW, height: finalH };
+    }
+
+    async function addPhotoPagesToPDF(pdf) {
+        const PW=210,PH=297,margin=5,cellW=(PW-margin*3)/2,cellH=70,rowGap=6,topStart=20,imgPadding=2;
+        const availableW = cellW - imgPadding*2;
+        const availableH = cellH - imgPadding*2;
+        let hasPhotos=false;
+
+        for (let tab=1;tab<=3;tab++) {
+            const photos=photoStore[tab];
+            if (!photos.length) continue;
+            hasPhotos=true; pdf.addPage();
+            pdf.setFontSize(13); pdf.setFont(undefined,'bold'); pdf.setTextColor(0,51,102);
+            pdf.text('Photo Set '+tab,margin,14); pdf.setDrawColor(0,51,102); pdf.line(margin,16,PW-margin,16);
+            let y=topStart;
+
+            for (let i=0;i<photos.length;i+=2) {
+                if (y+cellH+20>PH-margin) { pdf.addPage(); y=margin; }
+
+                // Left photo
+                const left=photos[i];
+                const leftDims = await getImageDimensions(left.dataUrl);
+                const leftFit = calculateFitDimensions(leftDims.width, leftDims.height, availableW, availableH);
+                const leftX = margin + imgPadding + (availableW - leftFit.width) / 2;
+                const leftY = y + imgPadding + (availableH - leftFit.height) / 2;
+
+                // Draw border for left photo
+                pdf.setDrawColor(255,215,0); pdf.setLineWidth(1);
+                pdf.rect(margin,y,cellW,cellH);
+                // Add left photo centered and fitted
+                pdf.addImage(left.dataUrl,'JPEG',leftX,leftY,leftFit.width,leftFit.height,'','FAST');
+                pdf.setFontSize(8); pdf.setFont(undefined,'normal'); pdf.setTextColor(50,50,50);
+                pdf.text('Photo '+left.idx+': '+left.name,margin,y+cellH+4,{maxWidth:cellW});
+                if (left.description){pdf.setFontSize(7);pdf.setTextColor(80,80,80);pdf.text(left.description,margin,y+cellH+8,{maxWidth:cellW});}
+
+                // Right photo (if exists)
+                if (photos[i+1]) {
+                    const right=photos[i+1],x2=margin+cellW+margin;
+                    const rightDims = await getImageDimensions(right.dataUrl);
+                    const rightFit = calculateFitDimensions(rightDims.width, rightDims.height, availableW, availableH);
+                    const rightX = x2 + imgPadding + (availableW - rightFit.width) / 2;
+                    const rightY = y + imgPadding + (availableH - rightFit.height) / 2;
+
+                    // Draw border for right photo
+                    pdf.setDrawColor(255,215,0); pdf.setLineWidth(1);
+                    pdf.rect(x2,y,cellW,cellH);
+                    // Add right photo centered and fitted
+                    pdf.addImage(right.dataUrl,'JPEG',rightX,rightY,rightFit.width,rightFit.height,'','FAST');
+                    pdf.setFontSize(8);pdf.setFont(undefined,'normal');pdf.setTextColor(50,50,50);
+                    pdf.text('Photo '+right.idx+': '+right.name,x2,y+cellH+4,{maxWidth:cellW});
+                    if (right.description){pdf.setFontSize(7);pdf.setTextColor(80,80,80);pdf.text(right.description,x2,y+cellH+8,{maxWidth:cellW});}
+                }
+                y+=cellH+rowGap+12;
+            }
+        }
+        return hasPhotos;
+    }
+    function autoResize(ta) { ta.style.height='24px'; ta.style.height=ta.scrollHeight+'px'; }
+    function initAutoResize(ta) { ta.style.height='24px'; ta.addEventListener('input',function(){autoResize(this);}); }
+    document.addEventListener('DOMContentLoaded',function(){document.querySelectorAll('textarea.auto-resize').forEach(initAutoResize);});
+    const lineCounters = { briefHistory:1, logBookRemarks:1, ddsMessage:1, chronologyEvents:1, observation:1, actionTaken:1, conclusion:1 };
+    function addLine(sectionId) {
+        lineCounters[sectionId]++;
+        const container=document.getElementById(sectionId), lineNumber=lineCounters[sectionId];
+        const newLine=document.createElement('div');
+        newLine.className='expandable-line'; newLine.setAttribute('data-index',lineNumber);
+        newLine.innerHTML='<span class="line-number">'+lineNumber+'.</span><textarea class="line-input auto-resize" name="'+sectionId+'_'+lineNumber+'" placeholder="Enter line '+lineNumber+'"></textarea><button type="button" class="line-remove-btn" onclick="removeThisLine(this,\''+sectionId+'\')" title="Remove">−</button>';
+        container.appendChild(newLine); initAutoResize(newLine.querySelector('textarea'));
+    }
+    function removeThisLine(btn, sectionId) {
+        const container=document.getElementById(sectionId);
+        const lines=container.querySelectorAll('.expandable-line');
+        if (lines.length<=1){alert('Cannot remove the last line. At least one line must remain.');return;}
+        btn.closest('.expandable-line').remove();
+        container.querySelectorAll('.expandable-line').forEach(function(el,i){el.querySelector('.line-number').textContent=(i+1)+'.';});
+    }
+    function previewSignature(event) {
+        const file=event.target.files[0]; if(!file) return;
+        const reader=new FileReader();
+        reader.onload=function(e){document.getElementById('signatureImage').src=e.target.result;document.getElementById('signaturePreview').style.display='block';};
+        reader.readAsDataURL(file);
+    }
+
+    /* ═══════ PRINT / PRINT PREVIEW ═══════ */
+    function printReport() {
+        // Show all pages and photo panels
+        document.querySelectorAll('.page').forEach(p => p.classList.add('active'));
+        document.querySelectorAll('.photo-panel').forEach(p => p.classList.add('active'));
+
+        // Add pdf-mode class for consistent styling
+        const reportPage = document.getElementById('reportPage');
+        reportPage.classList.add('pdf-mode');
+
+        // Swap textareas to readable divs
+        const swaps = [];
+        document.querySelectorAll('textarea.auto-resize').forEach(function(ta) {
+            const mirror = document.createElement('div');
+            mirror.className = 'textarea-mirror';
+            if (ta.classList.contains('case-details-textarea')) mirror.classList.add('case-details-textarea');
+            if (ta.classList.contains('line-input'))            mirror.classList.add('line-input');
+            mirror.style.minHeight  = '18px';
+            mirror.style.whiteSpace = 'pre-wrap';
+            mirror.style.fontSize   = '13px';
+            mirror.style.padding    = '2px 5px';
+            mirror.style.color = '#000';
+            mirror.innerHTML = ta.value || '';
+            ta.parentNode.insertBefore(mirror, ta);
+            ta.style.display = 'none';
+            swaps.push({ ta, mirror });
+        });
+
+        // Open print dialog
+        window.print();
+
+        // Restore textareas
+        swaps.forEach(function({ ta, mirror }) { ta.style.display=''; mirror.parentNode.removeChild(mirror); });
+
+        // Remove pdf-mode class
+        reportPage.classList.remove('pdf-mode');
+
+        // Restore active page
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        const m = document.querySelector('.page-nav-btn.active').getAttribute('onclick').match(/'(\w+)'/);
+        if (m) document.getElementById(m[1]).classList.add('active');
+
+        // Restore active photo panel
+        document.querySelectorAll('.photo-panel').forEach(p => p.classList.remove('active'));
+        const activePhotoBtn = document.querySelector('.photo-tab-btn.active');
+        if (activePhotoBtn) {
+            const t = activePhotoBtn.getAttribute('onclick').match(/\d+/);
+            if (t) { const pnl = document.getElementById('photoPanel'+t[0]); if(pnl) pnl.classList.add('active'); }
+        }
+    }
+
+    /* ═══════ EXCEL ═══════ */
+    function generateExcelDocument() {
+        try {
+            const wb=XLSX.utils.book_new(), rows=[];
+            rows.push(['LOCO TROUBLE REPORT']); rows.push([]);
+            const cd=document.getElementById('caseDetails').value;
+            if(cd){rows.push(['CASE DETAILS']);rows.push([cd]);rows.push([]);}
+            rows.push(['BRIEF HISTORY']);
+            document.querySelectorAll('#briefHistory textarea').forEach((ta,i)=>{if(ta.value.trim())rows.push([(i+1)+'. '+ta.value]);});
+            rows.push([]);
+            rows.push(['LP & TRAIN PARTICULARS']);
+            [['LP Name','lpName'],['LP CMS ID','lpCmsId'],['DOP','dop'],['Train No','trainNo'],['BPC No','bpcno'],['Loco No','locono'],['BPC %','bpc%'],['Grade','grade'],['Load','load'],['Group CLI Name','GCLI'],['ALP NAME/HQ','alpname'],['ALP CMS ID','alpCmsId'],['BPC Date','bpcDate'],['Last Counselling','lastCounselling'],['Schedule','schedule']].forEach(([l,id])=>{const el=document.getElementById(id);if(el&&el.value)rows.push([l,el.value]);});
+            rows.push([]);
+            rows.push(['LOG BOOK REMARKS']);
+            document.querySelectorAll('#logBookRemarks textarea').forEach((ta,i)=>{if(ta.value.trim())rows.push([(i+1)+'. '+ta.value]);});
+            rows.push([]);
+            rows.push(['DDS MESSAGE']);
+            document.querySelectorAll('#ddsMessage textarea').forEach((ta,i)=>{if(ta.value.trim())rows.push([(i+1)+'. '+ta.value]);});
+            rows.push([]);
+            rows.push(['CHRONOLOGY OF EVENTS']);
+            document.querySelectorAll('#chronologyEvents textarea').forEach((ta,i)=>{if(ta.value.trim())rows.push([(i+1)+'. '+ta.value]);});
+            rows.push([]);
+            rows.push(['OBSERVATION']);
+            document.querySelectorAll('#observation textarea').forEach((ta,i)=>{if(ta.value.trim())rows.push([(i+1)+'. '+ta.value]);});
+            rows.push([]);
+            rows.push(['ACTION TAKEN']);
+            document.querySelectorAll('#actionTaken textarea').forEach((ta,i)=>{if(ta.value.trim())rows.push([(i+1)+'. '+ta.value]);});
+            rows.push([]);
+            rows.push(['CONCLUSION & RESPONSIBILITY']);
+            document.querySelectorAll('#conclusion textarea').forEach((ta,i)=>{if(ta.value.trim())rows.push([(i+1)+'. '+ta.value]);});
+            rows.push([]);
+            const cn=document.getElementById('cliName').value; if(cn) rows.push(['Report Prepared By:',cn]);
+            const ws=XLSX.utils.aoa_to_sheet(rows); ws['!cols']=[{wch:45},{wch:35}];
+            XLSX.utils.book_append_sheet(wb,ws,'Loco Report');
+            XLSX.writeFile(wb,'Loco_Trouble_Report_'+new Date().toISOString().replace(/[:.]/g,'-').slice(0,-5)+'.xlsx');
+        } catch(err){console.error(err);alert('Error generating Excel file.');}
+    }
+
+    /* ═══════ PDF ═══════ */
+    function swapTextareasForPDF() {
+        const swaps=[];
+        document.querySelectorAll('textarea.auto-resize').forEach(function(ta){
+            const mirror=document.createElement('div'); mirror.className='textarea-mirror';
+            if(ta.classList.contains('case-details-textarea')) mirror.classList.add('case-details-textarea');
+            if(ta.classList.contains('line-input')) mirror.classList.add('line-input');
+            mirror.style.width=ta.offsetWidth+'px';
+            mirror.style.whiteSpace='pre-wrap';
+            mirror.style.fontSize='13px';
+            mirror.style.padding='2px 5px';
+            mirror.style.color='#000';
+            mirror.style.minHeight='18px';
+            mirror.innerHTML=ta.value || '';
+            ta.parentNode.insertBefore(mirror,ta); ta.style.display='none'; swaps.push({ta,mirror});
+        });
+        return swaps;
+    }
+    function restoreTextareas(swaps){swaps.forEach(function({ta,mirror}){ta.style.display='';mirror.parentNode.removeChild(mirror);});}
+    document.getElementById('locoReportForm').addEventListener('submit',async function(e){
+        e.preventDefault();
+        const submitBtn=e.target.querySelector('.submit-btn'), originalTxt=submitBtn.textContent;
+        submitBtn.textContent='Generating PDF...'; submitBtn.disabled=true; let swaps=[];
+        try {
+            const buttons=document.querySelectorAll('.add-line-btn,.line-remove-btn,.submit-btn,.signature-upload');
+            buttons.forEach(btn=>btn.style.display='none');
+            const content=document.getElementById('reportPage');
+            content.classList.add('pdf-mode'); swaps=swapTextareasForPDF();
+            await new Promise(r=>setTimeout(r,80));
+            const canvas=await html2canvas(content,{scale:3,useCORS:true,logging:false,backgroundColor:'#ffffff',windowWidth:1000,windowHeight:content.scrollHeight});
+            restoreTextareas(swaps); swaps=[];
+            const {jsPDF}=window.jspdf, pdf=new jsPDF('p','mm','a4');
+            const pdfW=210,pdfH=297,margin=5,contentWidth=pdfW-(2*margin);
+            const imgH=(canvas.height*contentWidth)/canvas.width;
+            let heightLeft=imgH, position=0;
+            pdf.addImage(canvas.toDataURL('image/png'),'PNG',margin,position,contentWidth,imgH,'','FAST');
+            heightLeft-=pdfH;
+            while(heightLeft>0){position=heightLeft-imgH;pdf.addPage();pdf.addImage(canvas.toDataURL('image/png'),'PNG',margin,position,contentWidth,imgH,'','FAST');heightLeft-=pdfH;}
+            await addPhotoPagesToPDF(pdf);
+            pdf.save('Loco_Trouble_Report_'+new Date().toISOString().replace(/[:.]/g,'-').slice(0,-5)+'.pdf');
+            content.classList.remove('pdf-mode'); buttons.forEach(btn=>btn.style.display='');
+            submitBtn.textContent=originalTxt; submitBtn.disabled=false; alert('PDF generated successfully!');
+        } catch(err){
+            console.error(err); alert('Error generating PDF.');
+            if(swaps.length) restoreTextareas(swaps);
+            document.getElementById('reportPage').classList.remove('pdf-mode');
+            document.querySelectorAll('.add-line-btn,.line-remove-btn,.submit-btn,.signature-upload').forEach(btn=>btn.style.display='');
+            submitBtn.textContent=originalTxt; submitBtn.disabled=false;
+        }
+    });
+
+    /* ═══════ TEXT FORMAT TOOLBAR ═══════ */
+    let selectedRange=null, currentTextarea=null;
+    document.addEventListener('mouseup',function(e){
+        const sel=window.getSelection(), txt=sel.toString();
+        if(e.target.tagName==='TEXTAREA'&&txt.length>0){
+            currentTextarea=e.target; selectedRange={start:e.target.selectionStart,end:e.target.selectionEnd};
+            const tb=document.getElementById('textFormatToolbar');
+            tb.style.left=(e.pageX-100)+'px'; tb.style.top=(e.pageY-60)+'px'; tb.classList.add('active');
+        } else if(!e.target.closest('.text-format-toolbar')) document.getElementById('textFormatToolbar').classList.remove('active');
+    });
+    document.addEventListener('click',function(e){if(!e.target.closest('.text-format-toolbar')&&e.target.tagName!=='TEXTAREA') document.getElementById('textFormatToolbar').classList.remove('active');});
+    function wrapSelectedText(prefix,suffix){
+        if(!currentTextarea||!selectedRange) return;
+        const start=selectedRange.start,end=selectedRange.end,text=currentTextarea.value,sel=text.substring(start,end);
+        currentTextarea.value=text.substring(0,start)+prefix+sel+suffix+text.substring(end);
+        if(currentTextarea.classList.contains('auto-resize')) autoResize(currentTextarea);
+        currentTextarea.focus(); currentTextarea.selectionStart=start; currentTextarea.selectionEnd=end+prefix.length+suffix.length;
+    }
+    function formatText(cmd){if(cmd==='bold') wrapSelectedText('<b>','</b>');}
+    function formatTextColor(c){wrapSelectedText('<span style="color:'+c+'">','</span>');}
+    function formatBgColor(c){wrapSelectedText('<span style="background-color:'+c+'">','</span>');}
+
+    /* ═══════ DRAFT SAVE/LOAD FUNCTIONALITY ═══════ */
+    function showDraftStatus(message, type) {
+        const statusEl = document.getElementById('draftStatus');
+        statusEl.textContent = message;
+        statusEl.className = `draft-status ${type} show`;
+        setTimeout(() => {
+            statusEl.classList.remove('show');
+        }, 4000);
+    }
+
+    function getAllFormData() {
+        const formData = {};
+
+        // Get all input and textarea values
+        document.querySelectorAll('#reportPage input[type="text"], #reportPage input[type="date"], #reportPage textarea').forEach(function(field) {
+            if (field.id || field.name) {
+                const key = field.id || field.name;
+                formData[key] = field.value;
+            }
+        });
+
+        // Save signature if present
+        const signatureImg = document.getElementById('signatureImage');
+        if (signatureImg && signatureImg.src && signatureImg.src.startsWith('data:')) {
+            formData.signatureData = signatureImg.src;
+        }
+
+        // Save photo store data
+        formData.photoStore = photoStore;
+        formData.photoCounters = photoCounters;
+
+        // Save line counters
+        formData.lineCounters = lineCounters;
+
+        return formData;
+    }
+
+    function setAllFormData(data) {
+        // Restore all input and textarea values
+        Object.keys(data).forEach(function(key) {
+            if (key === 'photoStore' || key === 'photoCounters' || key === 'lineCounters' || key === 'signatureData') {
+                return; // Skip special keys
+            }
+
+            const field = document.getElementById(key) || document.querySelector('[name="' + key + '"]');
+            if (field) {
+                field.value = data[key];
+                if (field.classList.contains('auto-resize')) {
+                    autoResize(field);
+                }
+            }
+        });
+
+        // Restore signature
+        if (data.signatureData) {
+            document.getElementById('signatureImage').src = data.signatureData;
+            document.getElementById('signaturePreview').style.display = 'block';
+        }
+
+        // Restore line counters and rebuild lines
+        if (data.lineCounters) {
+            Object.keys(data.lineCounters).forEach(function(sectionId) {
+                const targetCount = data.lineCounters[sectionId];
+                const currentCount = lineCounters[sectionId];
+
+                // Add missing lines
+                for (let i = currentCount; i < targetCount; i++) {
+                    addLine(sectionId);
+                }
+            });
+        }
+
+        // Re-apply all field values after lines are created
+        Object.keys(data).forEach(function(key) {
+            if (key === 'photoStore' || key === 'photoCounters' || key === 'lineCounters' || key === 'signatureData') {
+                return;
+            }
+            const field = document.getElementById(key) || document.querySelector('[name="' + key + '"]');
+            if (field) {
+                field.value = data[key];
+                if (field.classList.contains('auto-resize')) {
+                    autoResize(field);
+                }
+            }
+        });
+
+        // Restore photos
+        if (data.photoStore && data.photoCounters) {
+            // Clear existing photos
+            for (let tab = 1; tab <= 3; tab++) {
+                const grid = document.getElementById('photoGrid' + tab);
+                grid.innerHTML = '';
+                photoStore[tab] = [];
+            }
+
+            // Restore photo counters
+            Object.assign(photoCounters, data.photoCounters);
+
+            // Restore photos
+            Object.keys(data.photoStore).forEach(function(tabNum) {
+                const tab = parseInt(tabNum);
+                const photos = data.photoStore[tabNum];
+                const grid = document.getElementById('photoGrid' + tab);
+
+                if (photos && photos.length > 0) {
+                    photoStore[tab] = photos;
+
+                    photos.forEach(function(photo) {
+                        const item = document.createElement('div');
+                        item.className = 'photo-item';
+                        item.id = 'photoItem_' + tab + '_' + photo.idx;
+                        item.innerHTML = '<img src="' + photo.dataUrl + '" alt="' + photo.name + '"><div class="photo-item-label">Photo ' + photo.idx + ' — ' + photo.name + '</div><button class="photo-remove-btn" onclick="removePhoto(' + tab + ',' + photo.idx + ',this)" title="Remove">✕</button><textarea class="photo-description" placeholder="Enter photo description..." oninput="updatePhotoDescription(' + tab + ',' + photo.idx + ',this.value)">' + (photo.description || '') + '</textarea>';
+                        grid.appendChild(item);
+                    });
+                } else {
+                    const empty = document.createElement('div');
+                    empty.className = 'photo-empty';
+                    empty.id = 'photoEmpty' + tab;
+                    empty.textContent = 'No photos attached yet. Click "Add Photos" above.';
+                    grid.appendChild(empty);
+                }
+            });
+        }
+    }
+
+    function downloadDraft() {
+        try {
+            const data = getAllFormData();
+
+            // Check if form has any meaningful data
+            const hasData = Object.keys(data).some(function(key) {
+                if (key === 'photoStore' || key === 'photoCounters' || key === 'lineCounters') {
+                    return false;
+                }
+                return data[key] && data[key] !== '';
+            }) || (data.photoStore && Object.values(data.photoStore).some(arr => arr.length > 0));
+
+            if (!hasData) {
+                showDraftStatus('No data to download. Please fill in some fields first.', 'error');
+                return;
+            }
+
+            // Create JSON blob
+            const jsonData = JSON.stringify(data, null, 2);
+            const blob = new Blob([jsonData], { type: 'application/json' });
+
+            // Create download link
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'loco-report-draft-' + new Date().toISOString().slice(0, 10) + '.json';
+
+            // Trigger download
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            showDraftStatus('✓ Draft downloaded successfully!', 'success');
+        } catch (error) {
+            console.error('Error downloading draft:', error);
+            showDraftStatus('Error downloading draft. Please try again.', 'error');
+        }
+    }
+
+    function uploadDraft(event) {
+        const file = event.target.files[0];
+
+        if (!file) {
+            return;
+        }
+
+        // Check file type
+        if (file.type !== 'application/json' && !file.name.endsWith('.json')) {
+            showDraftStatus('Please upload a valid JSON file.', 'error');
+            return;
+        }
+
+        const reader = new FileReader();
+
+        reader.onload = function(e) {
+            try {
+                const data = JSON.parse(e.target.result);
+                setAllFormData(data);
+                showDraftStatus('✓ Draft loaded successfully! You can now make changes.', 'success');
+            } catch (error) {
+                console.error('Error parsing JSON:', error);
+                showDraftStatus('Error reading file. Please make sure it\'s a valid draft file.', 'error');
+            }
+        };
+
+        reader.onerror = function() {
+            showDraftStatus('Error reading file. Please try again.', 'error');
+        };
+
+        reader.readAsText(file);
+
+        // Reset file input so the same file can be uploaded again
+        event.target.value = '';
+    }
+
+    /* ======= RESET FORM ======= */
+    function resetForm() {
+        if (!confirm('Are you sure you want to reset ALL data? This cannot be undone.')) return;
+        document.querySelectorAll('#reportPage input[type="text"], #reportPage input[type="date"], #reportPage textarea').forEach(function(f){ f.value = ''; if(f.classList.contains('auto-resize')) autoResize(f); });
+        document.getElementById('signatureImage').src = '';
+        document.getElementById('signaturePreview').style.display = 'none';
+        ['briefHistory','logBookRemarks','ddsMessage','chronologyEvents','observation','actionTaken','conclusion'].forEach(function(sid){
+            var container = document.getElementById(sid);
+            container.innerHTML = '';
+            lineCounters[sid] = 1;
+            var newLine = document.createElement('div');
+            newLine.className = 'expandable-line';
+            newLine.setAttribute('data-index','1');
+            newLine.innerHTML = '<span class="line-number">1.</span><textarea class="line-input auto-resize" name="'+sid+'_1" placeholder="Enter line 1"></textarea><button type="button" class="line-remove-btn" onclick="removeThisLine(this,&quot;'+sid+'&quot;)" title="Remove">−</button>';
+            container.appendChild(newLine);
+            initAutoResize(newLine.querySelector('textarea'));
+        });
+        for (var tab=1; tab<=3; tab++) {
+            var grid = document.getElementById('photoGrid'+tab);
+            grid.innerHTML = '';
+            photoStore[tab] = [];
+            photoCounters[tab] = 0;
+            var empty = document.createElement('div');
+            empty.className = 'photo-empty';
+            empty.id = 'photoEmpty'+tab;
+            empty.textContent = 'No photos attached yet. Click "Add Photos" above.';
+            grid.appendChild(empty);
+        }
+        var ds = document.getElementById('draftStatus');
+        ds.className = 'draft-status';
+    }
+    </script>
+<!-- Code injected by live-server -->
+<script>
+	// <![CDATA[  <-- For SVG support
+	if ('WebSocket' in window) {
+		(function () {
+			function refreshCSS() {
+				var sheets = [].slice.call(document.getElementsByTagName("link"));
+				var head = document.getElementsByTagName("head")[0];
+				for (var i = 0; i < sheets.length; ++i) {
+					var elem = sheets[i];
+					var parent = elem.parentElement || head;
+					parent.removeChild(elem);
+					var rel = elem.rel;
+					if (elem.href && typeof rel != "string" || rel.length == 0 || rel.toLowerCase() == "stylesheet") {
+						var url = elem.href.replace(/(&|\?)_cacheOverride=\d+/, '');
+						elem.href = url + (url.indexOf('?') >= 0 ? '&' : '?') + '_cacheOverride=' + (new Date().valueOf());
+					}
+					parent.appendChild(elem);
+				}
+			}
+			var protocol = window.location.protocol === 'http:' ? 'ws://' : 'wss://';
+			var address = protocol + window.location.host + window.location.pathname + '/ws';
+			var socket = new WebSocket(address);
+			socket.onmessage = function (msg) {
+				if (msg.data == 'reload') window.location.reload();
+				else if (msg.data == 'refreshcss') refreshCSS();
+			};
+			if (sessionStorage && !sessionStorage.getItem('IsThisFirstTime_Log_From_LiveServer')) {
+				console.log('Live reload enabled.');
+				sessionStorage.setItem('IsThisFirstTime_Log_From_LiveServer', true);
+			}
+		})();
+	}
+	else {
+		console.error('Upgrade your browser. This Browser is NOT supported WebSocket for Live-Reloading.');
+	}
+	// ]]>
+</script>
+
+<!-- ========== VOICE TYPING FEATURE - START ========== -->
+<style>
+/* Voice Typing Styles */
+.voice-typing-mic-btn {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: #667eea;
+    color: white;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    z-index: 1000;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+.voice-typing-mic-btn:hover {
+    background: #5568d3;
+    transform: translateY(-50%) scale(1.1);
+}
+
+.voice-typing-mic-btn.listening {
+    background: #ef4444;
+    animation: voice-pulse 1.5s infinite;
+}
+
+@keyframes voice-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+    50% { box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); }
+}
+
+.voice-typing-mic-btn svg {
+    width: 16px;
+    height: 16px;
+}
+
+/* Wrapper for inputs with voice typing */
+.voice-input-wrapper {
+    position: relative;
+    display: inline-block;
+    width: 100%;
+}
+
+.voice-input-wrapper input,
+.voice-input-wrapper textarea {
+    padding-right: 45px !important;
+}
+
+/* Status indicator */
+.voice-status {
+    position: absolute;
+    bottom: -18px;
+    left: 0;
+    font-size: 10px;
+    color: #ef4444;
+    font-style: italic;
+}
+</style>
+
+<script>
+// Voice Typing System
+(function() {
+    'use strict';
+
+    let recognition = null;
+    let currentInput = null;
+    let currentButton = null;
+    let isListening = false;
+
+    // Microphone SVG icon
+    const micIcon = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2H3v2a9 9 0 0 0 8 8.94V23h2v-2.06A9 9 0 0 0 21 12v-2h-2z"/></svg>';
+
+    // Initialize speech recognition
+    function initRecognition() {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+        if (!SpeechRecognition) {
+            console.warn('Speech Recognition not supported in this browser');
+            return false;
+        }
+
+        recognition = new SpeechRecognition();
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        recognition.lang = 'en-US';
+
+        recognition.onresult = function(event) {
+            let finalTranscript = '';
+
+            for (let i = event.resultIndex; i < event.results.length; i++) {
+                const transcript = event.results[i][0].transcript;
+                if (event.results[i].isFinal) {
+                    finalTranscript += transcript + ' ';
+                }
+            }
+
+            if (currentInput && finalTranscript) {
+                const currentValue = currentInput.value;
+                currentInput.value = currentValue + (currentValue ? ' ' : '') + finalTranscript.trim();
+
+                // Trigger auto-resize if textarea has that class
+                if (currentInput.classList.contains('auto-resize')) {
+                    autoResize(currentInput);
+                }
+
+                // Trigger input event
+                currentInput.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+        };
+
+        recognition.onstart = function() {
+            isListening = true;
+            if (currentButton) {
+                currentButton.classList.add('listening');
+                currentButton.title = 'Click to stop voice typing';
+            }
+        };
+
+        recognition.onend = function() {
+            isListening = false;
+            if (currentButton) {
+                currentButton.classList.remove('listening');
+                currentButton.title = 'Click to start voice typing';
+            }
+        };
+
+        recognition.onerror = function(event) {
+            console.error('Speech recognition error:', event.error);
+            stopListening();
+        };
+
+        return true;
+    }
+
+    // Start listening
+    function startListening(input, button) {
+        if (!recognition) return;
+
+        if (isListening) {
+            stopListening();
+        }
+
+        currentInput = input;
+        currentButton = button;
+
+        try {
+            recognition.start();
+            input.focus();
+        } catch (error) {
+            console.error('Error starting recognition:', error);
+        }
+    }
+
+    // Stop listening
+    function stopListening() {
+        if (recognition && isListening) {
+            try {
+                recognition.stop();
+            } catch (error) {
+                console.error('Error stopping recognition:', error);
+            }
+        }
+    }
+
+    // Create microphone button
+    function createMicButton(input) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'voice-typing-mic-btn';
+        button.innerHTML = micIcon;
+        button.title = 'Click to start voice typing';
+
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            if (isListening && currentInput === input) {
+                stopListening();
+            } else {
+                startListening(input, button);
+            }
+        });
+
+        return button;
+    }
+
+    // Add voice typing to an input
+    function addVoiceTyping(input) {
+        // Skip if already has voice typing
+        if (input.closest('.voice-input-wrapper')) return;
+
+        // Skip if readonly or disabled
+        if (input.readOnly || input.disabled) return;
+
+        // Create wrapper
+        const wrapper = document.createElement('div');
+        wrapper.className = 'voice-input-wrapper';
+        wrapper.style.position = 'relative';
+        wrapper.style.display = input.style.display || 'block';
+
+        // Insert wrapper
+        input.parentNode.insertBefore(wrapper, input);
+        wrapper.appendChild(input);
+
+        // Create and add mic button
+        const micButton = createMicButton(input);
+        wrapper.appendChild(micButton);
+
+        // Adjust button position for textareas
+        if (input.tagName === 'TEXTAREA') {
+            micButton.style.top = '12px';
+            micButton.style.transform = 'none';
+        }
+    }
+
+    // Add voice typing to all text inputs and textareas
+    function addVoiceTypingToAll() {
+        const selectors = 'input[type="text"], input[type="date"], textarea';
+        const inputs = document.querySelectorAll(selectors);
+
+        inputs.forEach(function(input) {
+            addVoiceTyping(input);
+        });
+    }
+
+    // Initialize
+    function init() {
+        if (!initRecognition()) {
+            console.warn('Voice typing not available in this browser. Please use Chrome, Edge, or Safari.');
+            return;
+        }
+
+        // Add to existing inputs
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', addVoiceTypingToAll);
+        } else {
+            addVoiceTypingToAll();
+        }
+
+        // Watch for new inputs (for dynamically added lines)
+        const observer = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+                mutation.addedNodes.forEach(function(node) {
+                    if (node.nodeType === 1) { // Element node
+                        if (node.tagName === 'INPUT' || node.tagName === 'TEXTAREA') {
+                            addVoiceTyping(node);
+                        } else {
+                            const inputs = node.querySelectorAll('input[type="text"], input[type="date"], textarea');
+                            inputs.forEach(function(input) {
+                                addVoiceTyping(input);
+                            });
+                        }
+                    }
+                });
+            });
+        });
+
+        observer.observe(document.body, {
+            childList: true,
+            subtree: true
+        });
+    }
+
+    // Start initialization
+    init();
+})();
+</script>
+<!-- ========== VOICE TYPING FEATURE - END ========== -->
+
+</body>
+</html>
