@@ -11,6 +11,7 @@
 
 
 
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -939,6 +940,7 @@
     let currentButton = null;
     let isListening = false;
     let voiceEnabled = true; // Track if voice typing is enabled
+    let permissionGranted = false; // Track if mic permission has been granted
 
     // Microphone SVG icon
     const micIcon = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2H3v2a9 9 0 0 0 8 8.94V23h2v-2.06A9 9 0 0 0 21 12v-2h-2z"/></svg>';
@@ -1003,6 +1005,23 @@
         };
 
         return true;
+    }
+
+    // Request microphone permission
+    async function requestMicrophonePermission() {
+        if (permissionGranted) return true;
+
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            // Stop the stream immediately - we only needed to check permission
+            stream.getTracks().forEach(track => track.stop());
+            permissionGranted = true;
+            return true;
+        } catch (error) {
+            console.error('Microphone permission denied:', error);
+            alert('Microphone permission is required for voice typing. Please allow microphone access in your browser settings.');
+            return false;
+        }
     }
 
     // Start listening
@@ -1108,10 +1127,21 @@
     }
 
     // Toggle voice typing on/off
-    function toggleVoiceTyping(enabled) {
+    async function toggleVoiceTyping(enabled) {
         voiceEnabled = enabled;
         if (enabled) {
-            showAllMicButtons();
+            // Request permission once when enabling voice typing
+            const hasPermission = await requestMicrophonePermission();
+            if (hasPermission) {
+                showAllMicButtons();
+            } else {
+                // Permission denied, turn off the toggle
+                const voiceToggle = document.getElementById('voiceToggle');
+                if (voiceToggle) {
+                    voiceToggle.checked = false;
+                }
+                voiceEnabled = false;
+            }
         } else {
             hideAllMicButtons();
         }
@@ -1167,9 +1197,11 @@
         // Listen to voice toggle switch
         const voiceToggle = document.getElementById('voiceToggle');
         if (voiceToggle) {
-            // Set initial state
+            // Set initial state - request permission if checked by default
             voiceEnabled = voiceToggle.checked;
-            toggleVoiceTyping(voiceEnabled);
+            if (voiceEnabled) {
+                toggleVoiceTyping(voiceEnabled);
+            }
 
             // Listen for changes
             voiceToggle.addEventListener('change', function() {
